@@ -31,6 +31,7 @@ def extract_spectrograms(path):
     window = es.Windowing(type='blackmanharris62')
     mel = es.MelBands(numberBands=40)
     Results = defaultdict(list)
+    result = []
 
     for folder in subfolders:
         if folder.find('features') == -1:
@@ -44,11 +45,13 @@ def extract_spectrograms(path):
                     filepath = name + ".wav"
                 audio_file = es.EasyLoader(filename=filepath, sampleRate=fs)
                 audio = audio_file.compute()
-                # take just a third part of the sound (about 10 s)
-                for frame in es.FrameGenerator(audio, window_size, window_size):
+                for index, frame in enumerate(es.FrameGenerator(audio, window_size, hop_size)):
                     spec = spectrum(window(frame))
                     me = mel(spec)
-                    Results[folder].append(me)
+                    result.append(me)
+                    # Concatenate into single instance each 81 frames
+                    if index % 20 == 0 and index != 0:
+                        Results[folder].append(np.concatenate(result[index-20:index]))
                 elapsed = timeit.default_timer() - start_time
                 print 'file processed in %.4f s' % elapsed
     with open('features.json', 'w') as outfile:
@@ -76,7 +79,7 @@ def pre_process_data():
             else:
                 train_tmp.append([instance, label])
     # randomly distribute the training instances
-    # shuffle(train_tmp)
+    shuffle(train_tmp)
     # store labels and instances in different lists
     for instance in train_tmp:
         train.append(instance[0])
@@ -84,6 +87,9 @@ def pre_process_data():
     for instance in test_tmp:
         test.append(instance[0])
         _y_test.append(instance[1])
+    # normalise data to 0 mean and 1 covariance
+    train = (train - np.mean(train)) / np.std(train)
+    test = (test - np.mean(test)) / np.std(test)
     print "---Data already processed---"
     return np.asarray(train), np.asarray(_y_train), np.asarray(test), np.asarray(_y_test)
 

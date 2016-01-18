@@ -1,11 +1,8 @@
-__author__ = 'oriol'
-
-import os
 import preprocess_gtzan
 import tensorflow as tf
 
-if not os.path.isfile('features.json'):
-    preprocess_gtzan.extract_spectrograms('gtzan_dataset')
+# if not os.path.isfile('features.json'):
+preprocess_gtzan.extract_spectrograms('gtzan_dataset')
 
 train, _y_train, test, _y_test = preprocess_gtzan.pre_process_data()
 
@@ -13,11 +10,11 @@ train, _y_train, test, _y_test = preprocess_gtzan.pre_process_data()
 sess = tf.InteractiveSession()
 
 # Placeholders
-x = tf.placeholder("float", shape=[None, 40])
+x = tf.placeholder("float", shape=[None, 800])
 y_ = tf.placeholder("float", shape=[None, 10])
 
 # Variables
-W = tf.Variable(tf.zeros([40, 10]))
+W = tf.Variable(tf.zeros([800, 10]))
 b = tf.Variable(tf.zeros([10]))
 
 # Initialise
@@ -32,9 +29,12 @@ cross_entropy = -tf.reduce_sum(y_*tf.log(y))
 # TRAINING
 train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
 
-batch_size = len(train)/2018
-for i in range(batch_size):
-  train_step.run(feed_dict={x: train[i:i+batch_size], y_: _y_train[i:i+batch_size]})
+for i in range(155):
+    if i == 0:
+        a = 50
+    else:
+        a = 0
+    train_step.run(feed_dict={x: train[i*50:2*i*50+a], y_: _y_train[i*50:2*i*50+a]})
 
 # EVALUATION
 correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
